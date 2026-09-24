@@ -96,9 +96,12 @@ function toAssetModel(row: any): Asset {
   }
 }
 
-const normalizeOptionalText = (value?: string, fallback = 'N/A') => {
+const normalizeOptionalText = (value?: string): string | null => {
   const cleaned = value?.trim() ?? ''
-  return cleaned || fallback
+  if (!cleaned) return null
+  const normalized = cleaned.toLowerCase().replace(/[.\-_\s]+/g, '')
+  if (['na', 'none', 'null', 'nill', 'nil'].includes(normalized)) return null
+  return cleaned
 }
 
 export const assetsService = {
@@ -186,7 +189,7 @@ export const assetsService = {
         name: input.name || 'N/A',
         category_id: input.categoryId,
         type_id: input.typeId ?? null,
-        serial_number: input.serialNumber?.trim() || null,
+        serial_number: normalizeOptionalText(input.serialNumber),
         model_number: normalizeOptionalText(input.modelNumber),
         inventory_number: normalizeOptionalText(input.inventoryNumber),
         barcode: normalizeOptionalText(input.barcode),
@@ -245,6 +248,72 @@ export const assetsService = {
     await recordAudit({ action: 'Asset Created', entityType: 'asset', entityId: asset.id, summary: `Asset ${asset.assetTag} created` })
     await notificationsService.add({ title: 'Asset registered', message: `${asset.assetTag} — ${asset.name}`, type: 'system', link: `/assets/${asset.id}` })
     return asset
+  },
+
+  async bulkCreate(inputs: Array<Omit<Asset, 'id' | 'assetTag' | 'createdAt' | 'updatedAt'> & { assetTag?: string }>): Promise<Asset[]> {
+    if (!inputs.length) return []
+    const now = new Date().toISOString()
+
+    if (isSupabaseConfigured()) {
+      const payloads = inputs.map((input, index) => ({
+        asset_tag: input.assetTag ?? `AST-${Date.now()}-${String(index + 1).padStart(3, '0')}`,
+        name: input.name?.trim() || 'Unnamed Asset',
+        category_id: input.categoryId,
+        type_id: input.typeId ?? null,
+        serial_number: normalizeOptionalText(input.serialNumber),
+        model_number: normalizeOptionalText(input.modelNumber),
+        inventory_number: normalizeOptionalText(input.inventoryNumber),
+        barcode: normalizeOptionalText(input.barcode),
+        department_id: input.departmentId,
+        sub_department_id: input.subDepartmentId ?? null,
+        building_id: input.buildingId ?? null,
+        floor_id: input.floorId ?? null,
+        room_id: input.roomId ?? null,
+        specific_location: normalizeOptionalText(input.specificLocation),
+        condition: input.condition,
+        status: input.status,
+        label_attached: input.labelAttached,
+        qa_checked: input.qaChecked,
+        purchase_date: input.purchaseDate ?? null,
+        acquisition_date: input.acquisitionDate ?? null,
+        purchase_order: normalizeOptionalText(input.purchaseOrder),
+        invoice_number: normalizeOptionalText(input.invoiceNumber),
+        acquisition_cost: input.acquisitionCost ?? null,
+        funding_source: normalizeOptionalText(input.fundingSource),
+        warranty_start: input.warrantyStart ?? null,
+        warranty_end: input.warrantyEnd ?? null,
+        warranty_provider: normalizeOptionalText(input.warrantyProvider),
+        useful_life_years: input.usefulLifeYears ?? null,
+        salvage_value: input.salvageValue ?? null,
+        remarks: normalizeOptionalText(input.remarks),
+        assigned_user_id: input.assignedUserId ?? null,
+        last_verified_at: input.lastVerifiedAt ?? null,
+        created_at: now,
+        updated_at: now,
+      }))
+
+      const { data, error } = await supabase.from('assets').insert(payloads).select()
+      if (error) throw error
+      const assets = (data ?? []).map(toAssetModel)
+      await recordAudit({
+        action: 'Assets Imported',
+        entityType: 'asset',
+        summary: `Imported ${assets.length} assets`,
+      })
+      return assets
+    }
+
+    await delay(500)
+    const existing = readStore<Asset[]>(STORAGE_KEYS.assets, [])
+    const assets: Asset[] = inputs.map((input, index) => ({
+      ...input,
+      id: generateId('ast'),
+      assetTag: input.assetTag ?? `AST-${Date.now()}-${String(index + 1).padStart(3, '0')}`,
+      createdAt: now,
+      updatedAt: now,
+    }))
+    writeStore(STORAGE_KEYS.assets, [...existing, ...assets])
+    return assets
   },
 
   async update(id: string, patch: Partial<Asset>): Promise<Asset> {
