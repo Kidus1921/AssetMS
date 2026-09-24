@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Moon, Plus, Search, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { useTheme } from '@/components/providers/ThemeProvider'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { topNavLinks } from '@/routes/navigation'
 import { notificationsService } from '@/services/notifications.service'

@@ -15,23 +15,42 @@ export interface Department {
   id: string
   name: string
   code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface SubDepartment {
   id: string
   departmentId: string
   name: string
+  code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface Building {
   id: string
   name: string
+  code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface Floor {
   id: string
   buildingId: string
   name: string
+  floorNumber?: string | number
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface Room {
@@ -42,17 +61,47 @@ export interface Room {
   subDepartmentId?: string
   name: string
   code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface Category {
   id: string
   name: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
 }
 
 export interface AssetType {
   id: string
   categoryId: string
   name: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+  createdAt?: string
+}
+
+export interface Manufacturer {
+  id: string
+  name: string
+  code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  code?: string
+  description?: string
+  status?: 'Active' | 'Inactive'
+  isActive?: boolean
 }
 
 export interface User {

@@ -23,11 +23,14 @@ export function SettingsPage() {
   })
 
   const reset = useMutation({
-    mutationFn: () => settingsService.resetDemoData(),
+    mutationFn: () => assetsService.resetDatabase(),
     onSuccess: () => {
       queryClient.clear()
-      toast.success('Demo data reset')
+      toast.success('Database reset to blank state')
       window.location.href = '/dashboard'
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Database reset failed')
     },
   })
 
@@ -85,14 +88,17 @@ export function SettingsPage() {
           </Table>
         </CardContent>
       </Card>
-      {import.meta.env.DEV ? (
-        <Card>
-          <CardHeader><CardTitle>Development</CardTitle></CardHeader>
-          <CardContent>
-            <Button variant="destructive" onClick={() => reset.mutate()}>Reset Demo Data</Button>
-          </CardContent>
-        </Card>
-      ) : null}
+      <Card>
+        <CardHeader><CardTitle>Database Reset</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Clears the current asset database back to a blank state before new imports or fresh setup.
+          </p>
+          <Button variant="destructive" onClick={() => reset.mutate()} disabled={reset.isPending}>
+            {reset.isPending ? 'Resetting...' : 'Rollback to blank DB'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

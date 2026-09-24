@@ -96,5 +96,5 @@ export const topNavLinks = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Assets', href: '/assets' },
   { label: 'Reports', href: '/reports' },
-  { label: 'Documents', href: '/reports' },
+  { label: 'Documents', href: '/reports?tab=documents' },
 ]
