@@ -158,13 +158,21 @@ export function ImportAssetsPage() {
       const floors = await locationsService.getFloors()
       const categories = await assetsService.getCategories()
       const defaultCat = categories[0]?.id ?? ''
+      const existingAssets = await assetsService.getAll()
+      const existingSerials = new Set(existingAssets.map((a) => a.serialNumber?.trim().toLowerCase()).filter(Boolean))
+      const existingInventory = new Set(existingAssets.map((a) => a.inventoryNumber?.trim().toLowerCase()).filter(Boolean))
+      const batchSerials = new Set<string>()
+      const batchInventory = new Set<string>()
 
       if (!defaultCat) {
         throw new Error('No asset categories exist. Add a category before importing assets.')
       }
 
       const validRows = rows.filter((r) => r.valid)
-      for (const row of validRows) {
+      const importInputs = []
+      const importErrors: string[] = []
+      for (let rowIndex = 0; rowIndex < validRows.length; rowIndex++) {
+        const row = validRows[rowIndex]
         const departmentName = getMappedValue(row.raw, mapping, 'Department')
         const buildingName = getMappedValue(row.raw, mapping, 'Building')
         const floorName = getMappedValue(row.raw, mapping, 'Floor')
@@ -182,21 +190,37 @@ export function ImportAssetsPage() {
         const rawCondition = getMappedValue(row.raw, mapping, 'Condition')
         const condition = normalizeAssetCondition(rawCondition) || 'Good'
 
-        await assetsService.create({
+        const serial = getMappedValue(row.raw, mapping, 'Serial Number').trim()
+        const inventory = getMappedValue(row.raw, mapping, 'Inventory Number').trim()
+        const serialKey = serial && !['n/a','na','none','null','-'].includes(serial.toLowerCase()) ? serial.toLowerCase() : ''
+        const inventoryKey = inventory && !['n/a','na','none','null','-'].includes(inventory.toLowerCase()) ? inventory.toLowerCase() : ''
+        if (serialKey && (existingSerials.has(serialKey) || batchSerials.has(serialKey))) {
+          importErrors.push(`Row ${rowIndex + 1}: duplicate serial number "${serial}"`)
+          continue
+        }
+        if (inventoryKey && (existingInventory.has(inventoryKey) || batchInventory.has(inventoryKey))) {
+          importErrors.push(`Row ${rowIndex + 1}: duplicate inventory number "${inventory}"`)
+          continue
+        }
+        if (serialKey) batchSerials.add(serialKey)
+        if (inventoryKey) batchInventory.add(inventoryKey)
+        importInputs.push({
           name: assetName,
           categoryId: defaultCat,
           departmentId: department.id,
           buildingId: building?.id,
           floorId: floor?.id,
           condition,
-          status: 'Active',
+          status: 'Active' as const,
           labelAttached: getMappedValue(row.raw, mapping, 'Label Attached').toLowerCase() === 'yes',
           qaChecked: false,
-          serialNumber: getMappedValue(row.raw, mapping, 'Serial Number') || undefined,
+          serialNumber: serial || undefined,
           modelNumber: getMappedValue(row.raw, mapping, 'Model Number') || undefined,
           remarks: getMappedValue(row.raw, mapping, 'Remarks') || undefined,
         })
       }
+      if (importErrors.length) throw new Error(`Import validation found ${importErrors.length} duplicate record(s). First: ${importErrors[0]}`)
+      await assetsService.bulkCreate(importInputs)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
