@@ -22,6 +22,7 @@ const systemFields = [
   'Asset Type',
   'Asset Name',
   'Serial Number',
+  'Inventory Number',
   'Model Number',
   'Condition',
   'Label Attached',
@@ -45,6 +46,7 @@ const fieldLabelMap: Record<SystemField, string> = {
   'Asset Type': 'Asset Type',
   'Asset Name': 'Asset Name',
   'Serial Number': 'Serial Number',
+  'Inventory Number': 'Inventory Number',
   'Model Number': 'Model Number',
   Condition: 'Condition',
   'Label Attached': 'Label Attached',
@@ -119,6 +121,7 @@ export function ImportAssetsPage() {
       else if (lower.includes('room')) auto[c] = 'Room'
       else if (lower.includes('item') || lower.includes('name')) auto[c] = 'Asset Name'
       else if (lower.includes('serial')) auto[c] = 'Serial Number'
+      else if (lower.includes('inventory') || lower.includes('inv no') || lower.includes('inventory no')) auto[c] = 'Inventory Number'
       else if (lower.includes('model')) auto[c] = 'Model Number'
       else if (lower.includes('condition')) auto[c] = 'Condition'
       else auto[c] = ''
