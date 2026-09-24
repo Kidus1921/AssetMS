@@ -96,13 +96,14 @@ function toAssetModel(row: any): Asset {
   }
 }
 
-const normalizeOptionalText = (value?: string): string | null => {
+const EMPTY_IDENTIFIER_VALUES = new Set(['n/a', 'na', 'none', 'null', 'nil', 'nill', '-', '--', 'blank', 'empty string'])
+
+export function normalizeOptionalIdentifier(value?: string): string | undefined {
   const cleaned = value?.trim() ?? ''
-  if (!cleaned) return null
-  const normalized = cleaned.toLowerCase().replace(/[.\-_\s]+/g, '')
-  if (['na', 'none', 'null', 'nill', 'nil'].includes(normalized)) return null
-  return cleaned
+  return !cleaned || EMPTY_IDENTIFIER_VALUES.has(cleaned.toLowerCase()) ? undefined : cleaned
 }
+
+const normalizeOptionalText = (value?: string) => normalizeOptionalIdentifier(value)
 
 export const assetsService = {
   async getAll(filters?: AssetFilters): Promise<Asset[]> {
@@ -189,10 +190,10 @@ export const assetsService = {
         name: input.name || 'N/A',
         category_id: input.categoryId,
         type_id: input.typeId ?? null,
-        serial_number: normalizeOptionalText(input.serialNumber),
+        serial_number: normalizeOptionalIdentifier(input.serialNumber) ?? null,
         model_number: normalizeOptionalText(input.modelNumber),
-        inventory_number: normalizeOptionalText(input.inventoryNumber),
-        barcode: normalizeOptionalText(input.barcode),
+        inventory_number: normalizeOptionalIdentifier(input.inventoryNumber) ?? null,
+        barcode: normalizeOptionalIdentifier(input.barcode) ?? null,
         department_id: input.departmentId,
         sub_department_id: input.subDepartmentId ?? null,
         building_id: input.buildingId ?? null,
@@ -260,10 +261,10 @@ export const assetsService = {
         name: input.name?.trim() || 'Unnamed Asset',
         category_id: input.categoryId,
         type_id: input.typeId ?? null,
-        serial_number: normalizeOptionalText(input.serialNumber),
+  serial_number: normalizeOptionalIdentifier(input.serialNumber) ?? null,
         model_number: normalizeOptionalText(input.modelNumber),
-        inventory_number: normalizeOptionalText(input.inventoryNumber),
-        barcode: normalizeOptionalText(input.barcode),
+        inventory_number: normalizeOptionalIdentifier(input.inventoryNumber) ?? null,
+        barcode: normalizeOptionalIdentifier(input.barcode) ?? null,
         department_id: input.departmentId,
         sub_department_id: input.subDepartmentId ?? null,
         building_id: input.buildingId ?? null,
@@ -298,6 +299,7 @@ export const assetsService = {
       await recordAudit({
         action: 'Assets Imported',
         entityType: 'asset',
+        entityId: assets[0]?.id ?? 'bulk-import',
         summary: `Imported ${assets.length} assets`,
       })
       return assets
